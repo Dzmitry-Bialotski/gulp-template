@@ -1,4 +1,4 @@
-let project_folder = "dist";
+let project_folder = require('path').basename(__dirname);
 let source_folder = "#src";
 
 let fs = require('fs');
@@ -24,7 +24,8 @@ let path = {
         html: source_folder + "/html/**/*.html",
         css: source_folder + "/scss/**/*.scss",
         js: source_folder + "/js/**/*.js",
-        img: source_folder + "/img/**/*.{jpg,png,svg,gif,ico,webp}"
+        img: source_folder + "/img/**/*.{jpg,png,svg,gif,ico,webp}",
+        fonts: source_folder + "/fonts/*.ttf"
     },
     clean: "./" + project_folder + "/"
 }
@@ -130,12 +131,30 @@ gulp.task('otf2ttf', function() {
         .pipe(dest(source_folder + '/fonts/'));
 })
 
-function fontsStyle(params) {
-
-}
 
 function cb() {
 
+}
+
+function fontsStyle(done) {
+    let file_content = fs.readFileSync(source_folder + '/scss/fonts.scss');
+    if (file_content == '') {
+        fs.writeFile(source_folder + '/scss/fonts.scss', '', cb);
+        fs.readdir(path.build.fonts, function(err, items) {
+            if (items) {
+                let c_font_name;
+                for (var i = 0; i < items.length; i++) {
+                    let font_name = items[i].split('.');
+                    font_name = font_name[0];
+                    if (c_font_name != font_name) {
+                        fs.appendFile(source_folder + '/scss/fonts.scss', '@include font("' + font_name + '", "' + font_name + '", "400", "normal");', cb)
+                    }
+                    c_font_name = font_name;
+                }
+            }
+        })
+    }
+    done();
 }
 
 function watchFiles(params) {
@@ -143,6 +162,7 @@ function watchFiles(params) {
     gulp.watch([path.watch.css], css);
     gulp.watch([path.watch.js], js);
     gulp.watch([path.watch.img], images);
+    gulp.watch([path.watch.fonts], fonts);
 }
 
 function clean(params) {
@@ -152,8 +172,10 @@ function clean(params) {
 let build = gulp.series(
     clean,
     gulp.parallel(js, css, html, images, fonts),
+    fontsStyle,
     watchFiles);
 
+exports.fontsStyle = fontsStyle;
 exports.fonts = fonts;
 exports.images = images;
 exports.js = js;
